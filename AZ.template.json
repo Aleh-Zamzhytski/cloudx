@@ -1,0 +1,95 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS CloudFormation Template to create availability zone with public and private sub-nets",
+  "Parameters": {
+    "VpcId": {
+      "Type": "String",
+      "Description": "Enter VPC id"
+    },
+    "AvailabilityZone": {
+      "Type": "String",
+      "Description": "Enter Subnet availability zone"
+    },
+    "PublicSubnetName": {
+      "Type": "String",
+      "Description": "Enter Public Subnet name"
+    },
+    "PublicSubnetCidr": {
+      "Type": "String",
+      "Description": "Enter Public Subnet CIDR of the form x.x.x.x/x",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    },
+    "DbSubnetName": {
+      "Type": "String",
+      "Description": "Enter DB Subnet name"
+    },
+    "DbSubnetCidr": {
+      "Type": "String",
+      "Description": "Enter DB Subnet CIDR of the form x.x.x.x/x",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    }
+  },
+  "Resources": {
+    "PublicSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZone"
+        },
+        "CidrBlock": {
+          "Ref": "PublicSubnetCidr"
+        },
+        "MapPublicIpOnLaunch": true,
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "PublicSubnetName"
+            }
+          }
+        ]
+      }
+    },
+    "DbSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": {
+          "Ref": "AvailabilityZone"
+        },
+        "CidrBlock": {
+          "Ref": "DbSubnetCidr"
+        },
+        "MapPublicIpOnLaunch": false,
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "DbSubnetName"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "PublicSubnetId": {
+      "Description" : "Public subnet Id",
+      "Value" : {
+        "Ref": "PublicSubnet"
+      }
+    },
+    "DbSubnetId": {
+      "Description" : "DB subnet Id",
+      "Value" : {
+        "Ref": "DbSubnet"
+      }
+    }
+  }
+}
+

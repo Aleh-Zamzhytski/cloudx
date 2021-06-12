@@ -1,0 +1,171 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS CloudFormation Template to create VPC with 2 availability zones with public and private sub-nets in each",
+  "Parameters": {
+    "NetworkCidr": {
+      "Type": "String",
+      "Description": "Enter network CIDR",
+      "Default": "10.0.0.0/16",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    },
+    "PublicSubnetACidr": {
+      "Type": "String",
+      "Description": "Enter public subnet A CIDR",
+      "Default": "10.0.11.0/24",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    },
+    "DbSubnetACidr": {
+      "Type": "String",
+      "Description": "Enter DB subnet A CIDR",
+      "Default": "10.0.12.0/24",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    },
+    "PublicSubnetBCidr": {
+      "Type": "String",
+      "Description": "Enter public subnet B CIDR",
+      "Default": "10.0.21.0/24",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    },
+    "DbSubnetBCidr": {
+      "Type": "String",
+      "Description": "Enter DB subnet B CIDR",
+      "Default": "10.0.22.0/24",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    }
+  },
+  "Resources": {
+    "VPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "NetworkCidr"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "task6-Network"
+          }
+        ]
+      }
+    },
+    "AvailabilityZoneA": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "Parameters": {
+          "VpcId": {
+            "Ref": "VPC"
+          },
+          "AvailabilityZone": "us-east-1a",
+          "PublicSubnetName": "task6-PublicSubnetA",
+          "DbSubnetName": "task6-DbSubnetA",
+          "PublicSubnetCidr": {
+            "Ref": "PublicSubnetACidr"
+          },
+          "DbSubnetCidr": {
+            "Ref": "DbSubnetACidr"
+          }
+        },
+        "TemplateURL": "https://aleh-zamzhytski-bucket.s3.amazonaws.com/cloud-formation/AZ.template.json"
+      }
+    },
+    "AvailabilityZoneB": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "Parameters": {
+          "VpcId": {
+            "Ref": "VPC"
+          },
+          "AvailabilityZone": "us-east-1b",
+          "PublicSubnetName": "task6-PublicSubnetB",
+          "DbSubnetName": "task6-DbSubnetB",
+          "PublicSubnetCidr": {
+            "Ref": "PublicSubnetBCidr"
+          },
+          "DbSubnetCidr": {
+            "Ref": "DbSubnetBCidr"
+          }
+        },
+        "TemplateURL": "https://aleh-zamzhytski-bucket.s3.amazonaws.com/cloud-formation/AZ.template.json"
+      }
+    },
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "task6-IGW"
+          }
+        ]
+      }
+    },
+    "AttachGateway": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "InternetGatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "PublicRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "task6-PublicRouteTable"
+          }
+        ]
+      }
+    },
+    "Route": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "AttachGateway",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "InternetGateway"
+        }
+      }
+    },
+    "PublicSubnetARouteTableAssociation": {
+      "DependsOn": "AvailabilityZoneA",
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Fn::GetAtt": [
+            "AvailabilityZoneA",
+            "Outputs.PublicSubnetId"
+          ]
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    },
+    "PublicSubnetBRouteTableAssociation": {
+      "DependsOn": "AvailabilityZoneB",
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Fn::GetAtt": [
+            "AvailabilityZoneB",
+            "Outputs.PublicSubnetId"
+          ]
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTable"
+        }
+      }
+    }
+  }
+}
