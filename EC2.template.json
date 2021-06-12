@@ -1,0 +1,147 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AWS CloudFormation Template to create Application and DB EC2 instances in the specified subnets",
+  "Parameters": {
+    "VpcId": {
+      "Type": "String",
+      "Description": "Enter VPC ID"
+    },
+    "PublicSubnetId": {
+      "Type": "String",
+      "Description": "Enter Public Subnet ID"
+    },
+    "DbSubnetId": {
+      "Type": "String",
+      "Description": "Enter Db Subnet ID"
+    },
+    "ApplicationImageId": {
+      "Type": "String",
+      "Description": "Enter Application Image ID",
+      "Default": "ami-0e967904b330082c8"
+    },
+    "DbImageId": {
+      "Type": "String",
+      "Description": "Enter DB Image ID",
+      "Default": "ami-0aeeebd8d2ab47354"
+    },
+    "AllowedSshCidr": {
+      "Type": "String",
+      "Description": "Enter allowed IP address that have access to the Application",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    },
+    "DefaultSecurityGroupId": {
+      "Type": "String",
+      "Description": "Enter default VPC security group Id"
+    }
+  },
+  "Resources": {
+    "HttpSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "GroupDescription": "Enable HTTP/S access for all IPs",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "SshSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "GroupDescription": "Enable SSH access for specified IP",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": {
+              "Ref": "AllowedSshCidr"
+            }
+          }
+        ]
+      }
+    },
+    "ApplicationInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "ApplicationImageId"
+        },
+        "KeyName": "t2.micro.key",
+        "InstanceType": "t2.micro",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Application"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "GroupSet": [
+              {
+                "Ref": "SshSecurityGroup"
+              },
+              {
+                "Ref": "HttpSecurityGroup"
+              },
+              {
+                "Ref" : "DefaultSecurityGroupId"
+              }
+            ],
+            "DeviceIndex": "0",
+            "DeleteOnTermination": "true",
+            "SubnetId": {
+              "Ref": "PublicSubnetId"
+            }
+          }
+        ]
+      }
+    },
+    "DbInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "DbImageId"
+        },
+        "KeyName": "t2.micro.key",
+        "InstanceType": "t2.micro",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Database"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "GroupSet": [
+              {
+                "Ref" : "DefaultSecurityGroupId"
+              }
+            ],
+            "DeviceIndex": "0",
+            "DeleteOnTermination": "true",
+            "SubnetId": {
+              "Ref": "DbSubnetId"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
